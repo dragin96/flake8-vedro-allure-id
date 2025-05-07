@@ -26,62 +26,83 @@ class AllureIdVisitor(ast.NodeVisitor):
             self.has_allure_import = True
         self.generic_visit(node)
 
-    def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        """Посещение определения класса - основная логика проверки."""
-        # Проверяем, что класс наследуется от vedro.Scenario
-        is_scenario = False
+    def _is_scenario_class(self, node: ast.ClassDef) -> bool:
+        """Проверяет, является ли класс наследником Scenario."""
         for base in node.bases:
             if isinstance(base, ast.Attribute) and isinstance(base.value, ast.Name):
                 if base.value.id == "vedro" and base.attr == "Scenario":
-                    is_scenario = True
+                    return True
             elif isinstance(base, ast.Name) and base.id == "Scenario":
-                is_scenario = True
+                return True
+        return False
 
-        if is_scenario:
-            # Проверяем наличие декоратора @allure.id()
-            has_allure_id = False
-            self.decorators_in_class = []
+    def _check_decorators(self, node: ast.ClassDef) -> bool:
+        """Проверяет наличие декоратора @allure.id() и собирает информацию о всех декораторах.
 
-            for decorator in node.decorator_list:
-                if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute):
-                    if (
-                        decorator.func.attr == "id"
-                        and isinstance(decorator.func.value, ast.Name)
-                        and decorator.func.value.id == "allure"
-                    ):
-                        has_allure_id = True
-                    # Собираем названия всех декораторов для информационных сообщений
-                    if isinstance(decorator.func.value, ast.Name):
-                        self.decorators_in_class.append(
-                            f"{decorator.func.value.id}.{decorator.func.attr}"
-                        )
+        Возвращает True, если декоратор @allure.id() найден.
+        """
+        has_allure_id = False
+        self.decorators_in_class = []
 
-            if not has_allure_id and self.has_allure_import:
-                # Добавляем ошибку, если импорт allure есть, но декоратора @allure.id() нет
-                decorators_str = (
-                    ", ".join(self.decorators_in_class) if self.decorators_in_class else "нет"
+        for decorator in node.decorator_list:
+            if not (isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute)):
+                continue
+
+            if self._is_allure_id_decorator(decorator):
+                has_allure_id = True
+
+            # Собираем названия всех декораторов для информационных сообщений
+            if isinstance(decorator.func.value, ast.Name):
+                self.decorators_in_class.append(f"{decorator.func.value.id}.{decorator.func.attr}")
+
+        return has_allure_id
+
+    def _is_allure_id_decorator(self, decorator: ast.Call) -> bool:
+        """Проверяет, является ли декоратор декоратором @allure.id()."""
+        return (
+            decorator.func.attr == "id"
+            and isinstance(decorator.func.value, ast.Name)
+            and decorator.func.value.id == "allure"
+        )
+
+    def _add_error_for_missing_decorator(self, node: ast.ClassDef) -> None:
+        """Добавляет ошибку, если декоратор @allure.id() отсутствует."""
+        if self.has_allure_import:
+            # Импорт allure есть, но декоратора @allure.id() нет
+            decorators_str = (
+                ", ".join(self.decorators_in_class) if self.decorators_in_class else "нет"
+            )
+            self.errors.append(
+                (
+                    node.lineno,
+                    node.col_offset,
+                    f"UGC100 класс Scenario должен иметь декоратор @allure.id(). "
+                    f"Найдены декораторы: {decorators_str}",
+                    type(self),
                 )
-                self.errors.append(
-                    (
-                        node.lineno,
-                        node.col_offset,
-                        f"UGC100 класс Scenario должен иметь декоратор @allure.id(). "
-                        f"Найдены декораторы: {decorators_str}",
-                        type(self),
-                    )
+            )
+        else:
+            # Нет ни импорта allure, ни декоратора
+            msg = (
+                "UGC101 импортируйте allure и добавьте декоратор "
+                "@allure.id() для класса Scenario"
+            )
+            self.errors.append(
+                (
+                    node.lineno,
+                    node.col_offset,
+                    msg,
+                    type(self),
                 )
-            elif not has_allure_id and not self.has_allure_import:
-                # Если нет импорта allure, сообщаем об этом
-                msg = ("UGC101 импортируйте allure и добавьте декоратор "
-                       "@allure.id() для класса Scenario")
-                self.errors.append(
-                    (
-                        node.lineno,
-                        node.col_offset,
-                        msg,
-                        type(self),
-                    )
-                )
+            )
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Посещение определения класса - основная логика проверки."""
+        if self._is_scenario_class(node):
+            has_allure_id = self._check_decorators(node)
+
+            if not has_allure_id:
+                self._add_error_for_missing_decorator(node)
 
         self.generic_visit(node)
 
