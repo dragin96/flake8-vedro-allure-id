@@ -1,5 +1,6 @@
 """Flake8 plugin to enforce @allure.id() decorator for Vedro Scenario classes."""
 
-from .plugin import AllureIdPlugin
+# Make plugin available to flake8
+from .plugin import AllureIdPlugin  # noqa
 
-__version__ = '0.1.0' 
+__version__ = "0.1.0"
