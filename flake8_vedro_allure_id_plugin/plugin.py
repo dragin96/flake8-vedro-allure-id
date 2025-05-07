@@ -72,7 +72,7 @@ class AllureIdVisitor(ast.NodeVisitor):
 class AllureIdPlugin:
     """Flake8 плагин для проверки наличия декоратора @allure.id() для классов Scenario."""
     
-    name = "flake8-allure-id"
+    name = "flake8-vedro-allure-id"
     version = "0.1.0"
     
     def __init__(self, tree: ast.AST) -> None:

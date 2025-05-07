@@ -1,6 +1,6 @@
 import ast
 import pytest
-from flake8_allure_id_plugin.plugin import AllureIdPlugin, AllureIdVisitor
+from flake8_vedro_allure_id_plugin.plugin import AllureIdPlugin, AllureIdVisitor
 
 
 def _results(code_snippet):
@@ -17,7 +17,7 @@ def test_plugin_version():
 
 def test_plugin_name():
     """Check plugin name."""
-    assert AllureIdPlugin.name == "flake8-allure-id"
+    assert AllureIdPlugin.name == "flake8-vedro-allure-id"
 
 
 def test_error_when_missing_allure_import():
