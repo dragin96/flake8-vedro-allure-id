@@ -92,7 +92,16 @@ pytest
 1. Обновите версию в файле `flake8_vedro_allure_id_plugin/__init__.py`
 2. Создайте новый тег в формате `vX.Y.Z`
 3. Опубликуйте тег на GitHub
-4. GitHub Actions автоматически опубликует пакет в PyPI
+4. GitHub Actions автоматически опубликует пакет в PyPI, используя Trusted Publishing
+
+### Настройка Trusted Publishing для PyPI
+
+Для публикации пакета в PyPI через GitHub Actions мы используем метод Trusted Publishing:
+
+1. Перейдите в настройки вашего проекта на PyPI: https://pypi.org/manage/account/publishing/
+2. Создайте новую конфигурацию Trusted Publishing с использованием GitHub Actions
+3. Укажите имя репозитория, рабочий процесс (workflow) и триггер (ref pattern: `refs/tags/v*`)
+4. Workflow уже настроен с разрешением `id-token: write` для работы Trusted Publishing
 
 ## Лицензия
 
